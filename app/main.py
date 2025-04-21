@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from app.db import connect_to_db
-from pydantic import BaseModel
+from app.queries import get_authors, create_author
+from models.author import AuthorIn
 
 app = FastAPI()
 
@@ -16,3 +17,13 @@ async def shutdown():
 @app.get("/")
 async def get_start():
     return "hello"
+
+@app.get("/authors")
+async def get_authors_list(request: Request):
+    conn = request.app.state.db
+    return await get_authors(conn)
+
+@app.post("/authors")
+async def add_book(author: AuthorIn, request: Request):
+    conn = request.app.state.db
+    return await create_author(conn, author.name)
