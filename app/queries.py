@@ -45,5 +45,35 @@ async def create_user(
     VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING id, name, ci, phone_number, email
     """
-    row = await conn.fetchrow(query, name, ci, phone_number, email, is_admin, hashed_password)
+    row = await conn.fetchrow(
+        query,
+        name,
+        ci,
+        phone_number,
+        email,
+        is_admin, 
+        hashed_password
+    )
+
     return dict(row)
+
+async def create_book(conn, book):
+    query = """
+    INSERT INTO book (title, code, publish_date, edition, author_id)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, title, code, publish_date, edition, author_id
+    """
+    row = await conn.fetchrow(
+        query,
+        book.title,
+        book.code,
+        book.publish_date,
+        book.edition,
+        book.author_id
+    )
+
+    return dict(row)
+
+async def get_books(conn):
+    rows = await conn.fetch("SELECT * FROM book")
+    return [dict(row) for row in rows]
