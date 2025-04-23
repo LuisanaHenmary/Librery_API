@@ -138,6 +138,45 @@ async def get_book_by_term(conn, search: str):
     rows = await conn.fetch(query, *values)
     return [dict(row) for row in rows]
 
+async def update_book(conn, id, book):
+    row = None
+
+    try:
+        query = f"""
+        UPDATE book
+        SET is_available = $1
+        WHERE id={id}
+        RETURNING *
+        """
+
+        row = await conn.fetchrow(
+        query,
+        book.is_available
+        )
+
+    except Exception:
+        raise HTTPException(status_code=400, detail="Error")
+
+    if(row is None):
+        raise HTTPException(status_code=400, detail="This book is no longer registered.")
+    
+    return dict(row)
+
+async def delete_book(conn, id):
+
+    try:
+
+        query = "DELETE FROM book WHERE id = $1"
+
+        result = await conn.execute(query, id)
+
+    except Exception:
+        raise HTTPException(status_code=400, detail="Error")
+    
+    if(result == "DELETE 0"):
+        raise HTTPException(status_code=400, detail="This book is no longer registered.")
+    
+    return "book successfully deleted"
 # Loan functions
 async def create_loan(conn, loan):
 

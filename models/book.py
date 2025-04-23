@@ -49,6 +49,8 @@ class BookResponce(Book):
         example=1
     )
 
-    is_available: Optional[bool] = Field()
+    is_available: Optional[bool] = True
 
     
+class UpdateBook(BaseModel):
+    is_available: bool = Field(...)

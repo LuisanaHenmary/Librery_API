@@ -25,7 +25,9 @@ from app.queries import (
     get_books_by_author,
     get_books_by_category,
     get_book_by_term,
-    get_loan_by_user
+    get_loan_by_user,
+    update_book,
+    delete_book
 )
 
 
@@ -35,7 +37,7 @@ from app.auth import hash_password, verify_password, create_access_token
 from models.author import Author, AuthorResponce
 from models.category import Category, CategoryResponce
 from models.user import UserAuth, UserRegister
-from models.book import Book, BookResponce
+from models.book import Book, BookResponce, UpdateBook
 from models.loan import Loan, LoanResponce
 
 from app.utils import Depends, get_current_user, require_admin, HTTPException
@@ -189,6 +191,43 @@ async def add_book(
     conn = request.app.state.db
     return await create_book(conn, book)
     
+@app.put(
+    path="/books/{id}",
+    status_code=status.HTTP_200_OK,
+    response_model=BookResponce,
+    tags=["Books"]
+)
+async def update_a_book(
+    request: Request,
+    id: int = Path(
+        ...,
+        title="Book ID",
+        description="It is the ID of one of many books"
+    ),
+    book: UpdateBook = Body(...),
+    user=Depends(require_admin)
+):
+    """This path operation update a specific book."""
+    conn = request.app.state.db
+    return await update_book(conn, id, book)
+
+@app.delete(
+    path="/books/{id}",
+    status_code=status.HTTP_200_OK,
+    tags=["Books"]
+)
+async def delete_a_book(
+    request: Request,
+    id: int = Path(
+        ...,
+        title="Book ID",
+        description="It is the ID of one of many books"
+    ),
+    user=Depends(require_admin)
+):
+    """This path operation remove a specific book."""
+    conn = request.app.state.db
+    return await delete_book(conn, id)
 
 # Loans
 
