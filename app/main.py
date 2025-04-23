@@ -24,7 +24,8 @@ from app.queries import (
     get_books_by_id,
     get_books_by_author,
     get_books_by_category,
-    get_book_by_term
+    get_book_by_term,
+    get_loan_by_user
 )
 
 
@@ -284,3 +285,21 @@ async def search_books_by_term(request: Request, title: str = ""):
     """This path operation shows all registered books by a term."""
     conn = request.app.state.db
     return await get_book_by_term(conn, title)
+
+@app.get(
+    path="/users/{id_user}/loans",
+    status_code=status.HTTP_200_OK,
+    response_model=List[LoanResponce],
+    tags=["Users", "Loans","Search"]
+)
+async def get_loans_list_by_user(
+    request: Request,
+    id_user: int = Path(
+        ...,
+        title="User ID",
+        description="It is the ID of one of many users"
+    )
+):
+    """This path operation shows all registered loans of a specific user."""
+    conn = request.app.state.db
+    return await get_loan_by_user(conn, id_user)

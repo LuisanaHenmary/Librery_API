@@ -165,4 +165,8 @@ async def create_loan(conn, loan):
 async def get_loans(conn):
     rows = await conn.fetch("SELECT * FROM loans")
     return [dict(row) for row in rows]
+
+async def get_loan_by_user(conn, id_user):
+    rows = await conn.fetch(f"SELECT * FROM loans where id_user={id_user}")
+    return [dict(row) for row in rows]
     
