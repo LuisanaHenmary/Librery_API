@@ -1,15 +1,30 @@
+from fastapi import HTTPException
+from asyncpg.exceptions import UniqueViolationError
+
 async def get_authors(conn):
+
     rows = await conn.fetch("SELECT * FROM author")
     return [dict(row) for row in rows]
 
 async def create_author(conn, name):
-    query = """
-    INSERT INTO author (name)
-    VALUES ($1)
-    RETURNING id, name
-    """
-    row = await conn.fetchrow(query, name)
+
+    row = None
+
+    try:
+        query = """
+        INSERT INTO author (name)
+        VALUES ($1)
+        RETURNING id, name
+        """
+        row = await conn.fetchrow(query, name)
+
+    except UniqueViolationError:
+        raise HTTPException(status_code=400, detail="This author already exists")
+
+    
     return dict(row)
+    
+    
 
 
 async def get_categories(conn):
@@ -17,61 +32,86 @@ async def get_categories(conn):
     return [dict(row) for row in rows]
 
 async def create_category(conn, name):
-    query = """
-    INSERT INTO category (name)
-    VALUES ($1)
-    RETURNING id, name
-    """
-    row = await conn.fetchrow(query, name)
+
+    row = None
+
+    try:
+
+        query = """
+        INSERT INTO category (name)
+        VALUES ($1)
+        RETURNING id, name
+        """
+        row = await conn.fetchrow(query, name)
+
+
+    except UniqueViolationError:
+        raise HTTPException(status_code=400, detail="This category already exists")
+
+    
     return dict(row)
 
-async def get_user_by_name(conn, name: str):
-    query = "SELECT * FROM users WHERE name = $1"
-    row = await conn.fetchrow(query, name)
+async def get_user_by_username(conn, username: str):
+    query = "SELECT * FROM users WHERE username = $1"
+    row = await conn.fetchrow(query, username)
     return dict(row) if row else None
 
 async def create_user(
-        conn,
-        ci: str,
-        name: str,
-        email: str,
-        phone_number,
-        hashed_password: str,
-        is_admin=False
-        ):
+    conn,
+    ci: str,
+    username: str,
+    email: str,
+    phone_number,
+    hashed_password: str,
+    is_admin=False
+):
     
-    query = """
-    INSERT INTO users (name, ci, phone_number, email, is_admin, hashed_password)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING id, name, ci, phone_number, email
-    """
-    row = await conn.fetchrow(
-        query,
-        name,
-        ci,
-        phone_number,
-        email,
-        is_admin, 
-        hashed_password
-    )
+    row = None
+
+    try:
+
+        query = """
+        INSERT INTO users (username, ci, phone_number, email, is_admin, hashed_password)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, username, ci, phone_number, email
+        """
+        row = await conn.fetchrow(
+            query,
+            username,
+            ci,
+            phone_number,
+            email,
+            is_admin, 
+            hashed_password
+        )
+    except UniqueViolationError:
+        raise HTTPException(status_code=400, detail="This user or email already exists")
 
     return dict(row)
 
 async def create_book(conn, book):
-    query = """
-    INSERT INTO book (title, code, publish_date, edition, author_id)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING id, title, code, publish_date, edition, author_id
-    """
-    row = await conn.fetchrow(
+
+    row = None
+
+    try:
+        query = """
+        INSERT INTO book (title, code, publish_date, edition, author_id, id_category)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, title, code, publish_date, edition, author_id, id_category
+        """
+        row = await conn.fetchrow(
         query,
         book.title,
         book.code,
         book.publish_date,
         book.edition,
-        book.author_id
-    )
+        book.author_id,
+        book.id_category
+        )
 
+    except UniqueViolationError:
+        raise HTTPException(status_code=400, detail="This code for the book already exists")
+    
     return dict(row)
 
 async def get_books(conn):
