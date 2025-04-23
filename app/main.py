@@ -6,7 +6,6 @@ from fastapi import (
 )
 
 from typing import List
-from fastapi.security import OAuth2PasswordRequestForm
 
 from app.db import connect_to_db
 
@@ -18,7 +17,9 @@ from app.queries import (
     get_user_by_username,
     create_user,
     create_book,
-    get_books
+    get_books,
+    create_loan,
+    get_loans
 )
 
 
@@ -29,6 +30,7 @@ from models.author import Author, AuthorResponce
 from models.category import Category, CategoryResponce
 from models.user import UserAuth, UserRegister
 from models.book import Book, BookResponce
+from models.loan import Loan, LoanResponce
 
 from app.utils import Depends, get_current_user, require_admin, HTTPException
 import os
@@ -180,3 +182,31 @@ async def add_book(
     """This path operation register a new book."""
     conn = request.app.state.db
     return await create_book(conn, book)
+
+# Loans
+
+@app.get(
+    path="/loans",
+    status_code=status.HTTP_200_OK,
+    response_model=List[LoanResponce],
+    tags=["Loans"]
+)
+async def get_loans_list(request: Request):
+    """This path operation shows all registered loans."""
+    conn = request.app.state.db
+    return await get_loans(conn)
+
+@app.post(
+    path="/loans",
+    status_code=status.HTTP_201_CREATED,
+    response_model=LoanResponce,
+    tags=["Loans"]
+)
+async def add_loan(
+    request: Request,
+    loan: Loan = Body(...),
+    user=Depends(require_admin)
+):
+    """This path operation register a new loan."""
+    conn = request.app.state.db
+    return await create_loan(conn, loan)
