@@ -117,6 +117,27 @@ async def get_books(conn):
     rows = await conn.fetch("SELECT * FROM book")
     return [dict(row) for row in rows]
 
+async def get_books_by_author(conn, author_id):
+    rows = await conn.fetch(f"SELECT * FROM book where author_id={author_id}")
+    return [dict(row) for row in rows]
+
+async def get_books_by_category(conn, id_category):
+    rows = await conn.fetch(f"SELECT * FROM book where id_category={id_category}")
+    return [dict(row) for row in rows]
+
+async def get_books_by_id(conn, id):
+    rows = await conn.fetch(f"SELECT * FROM book where id={id}")
+    return [dict(row) for row in rows]
+
+async def get_book_by_term(conn, search: str):
+    query = """
+    SELECT * FROM book
+    WHERE LOWER(title) LIKE LOWER($1)
+    """
+    values = [f"%{search}%"]
+    rows = await conn.fetch(query, *values)
+    return [dict(row) for row in rows]
+
 # Loan functions
 async def create_loan(conn, loan):
 
@@ -144,3 +165,4 @@ async def create_loan(conn, loan):
 async def get_loans(conn):
     rows = await conn.fetch("SELECT * FROM loans")
     return [dict(row) for row in rows]
+    

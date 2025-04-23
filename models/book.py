@@ -49,4 +49,6 @@ class BookResponce(Book):
         example=1
     )
 
+    is_available: Optional[bool] = Field()
+
     

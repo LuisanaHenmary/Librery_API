@@ -2,7 +2,8 @@ from fastapi import (
     FastAPI,
     Request,
     Body,
-    status
+    status,
+    Path
 )
 
 from typing import List
@@ -19,7 +20,11 @@ from app.queries import (
     create_book,
     get_books,
     create_loan,
-    get_loans
+    get_loans,
+    get_books_by_id,
+    get_books_by_author,
+    get_books_by_category,
+    get_book_by_term
 )
 
 
@@ -182,6 +187,7 @@ async def add_book(
     """This path operation register a new book."""
     conn = request.app.state.db
     return await create_book(conn, book)
+    
 
 # Loans
 
@@ -210,3 +216,71 @@ async def add_loan(
     """This path operation register a new loan."""
     conn = request.app.state.db
     return await create_loan(conn, loan)
+    
+# Search
+
+@app.get(
+    path="/books/{id}",
+    status_code=status.HTTP_200_OK,
+    response_model=List[BookResponce],
+    tags=["Books","Search"]
+)
+async def get_books_list_by_id(
+    request: Request,
+    id: int = Path(
+        ...,
+        title="Book ID",
+        description="It is the ID of one of many books"
+    )
+):
+    """This path operation shows a specific book."""
+    conn = request.app.state.db
+    return await get_books_by_id(conn, id)
+
+@app.get(
+    path="/authors/{author_id}/books",
+    status_code=status.HTTP_200_OK,
+    response_model=List[BookResponce],
+    tags=["Books", "Authors","Search"]
+)
+async def get_books_list_by_author(
+    request: Request,
+    author_id: int = Path(
+        ...,
+        title="Author ID",
+        description="It is the ID of one of many authors"
+    )
+):
+    """This path operation shows all registered books of a specific author."""
+    conn = request.app.state.db
+    return await get_books_by_author(conn, author_id)
+
+
+@app.get(
+    path="/categories/{id_category}/books",
+    status_code=status.HTTP_200_OK,
+    response_model=List[BookResponce],
+    tags=["Books", "Categories","Search"]
+)
+async def get_books_list_by_category(
+    request: Request,
+    id_category: int = Path(
+        ...,
+        title="Category ID",
+        description="It is the ID of one of many categories"
+    )
+):
+    """This path operation shows all registered books of a specific category."""
+    conn = request.app.state.db
+    return await get_books_by_category(conn, id_category)
+
+@app.get(
+    path="/books/search",
+    status_code=status.HTTP_200_OK,
+    response_model=List[BookResponce],
+    tags=["Books", "Search"]
+)
+async def search_books_by_term(request: Request, title: str = ""):
+    """This path operation shows all registered books by a term."""
+    conn = request.app.state.db
+    return await get_book_by_term(conn, title)
