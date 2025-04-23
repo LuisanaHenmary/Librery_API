@@ -4,27 +4,34 @@ from fastapi import (
     Body,
     status
 )
+
+from typing import List
+from fastapi.security import OAuth2PasswordRequestForm
+
 from app.db import connect_to_db
+
 from app.queries import (
     get_authors,
     create_author,
     get_categories,
     create_category,
-    get_user_by_name,
+    get_user_by_username,
     create_user,
     create_book,
     get_books
 )
 
+
 from datetime import timedelta
 from app.auth import hash_password, verify_password, create_access_token
 
-from models.author import Author
-from models.category import Category
-from models.user import UserLogin, UserRegister
-from models.book import Book
+from models.author import Author, AuthorResponce
+from models.category import Category, CategoryResponce
+from models.user import UserAuth, UserRegister
+from models.book import Book, BookResponce
 
 from app.utils import Depends, get_current_user, require_admin, HTTPException
+import os
 
 app = FastAPI()
 
@@ -36,85 +43,140 @@ async def startup():
 async def shutdown():
     await app.state.db.close()
 
-
+# Default
 @app.get("/")
 async def get_start():
-    return "hello"
+    return f"Documentacion: {os.getenv('API_DOCS_URL')}"
 
-@app.get("/authors")
-async def get_authors_list(request: Request):
-    conn = request.app.state.db
-    return await get_authors(conn)
-
-@app.post("/authors")
-async def add_author(author: Author, request: Request, user=Depends(require_admin)):
-    conn = request.app.state.db
-    return await create_author(conn, author.name)
-
-@app.get("/categories")
-async def get_categories_list(request: Request):
-    conn = request.app.state.db
-    return await get_categories(conn)
-
-@app.post("/categories")
-async def add_category(category: Category, request: Request, user=Depends(require_admin)):
-    conn = request.app.state.db
-    return await create_category(conn, category.name)
-
-@app.post("/register")
+# Users
+@app.post(
+    path="/register",
+    status_code=status.HTTP_201_CREATED,
+    tags=["Users"]
+)
 async def register_user(user: UserRegister, request: Request):
-    conn = request.app.state.db
-    existing_user = await get_user_by_name(conn, user.name)
 
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Usuario ya existe")
-    
+    """This path operation register a new user."""
+
+    conn = request.app.state.db
+
     hashed = hash_password(user.password)
+
     return await create_user(
         conn,
         user.ci,
-        user.name,
+        user.username,
         user.email,
         user.phone_number,
         hashed
-        )
+    )
 
-@app.post("/login")
-async def login_user(user: UserLogin, request: Request):
+@app.post(
+    path="/login",
+    status_code=status.HTTP_200_OK,
+    tags=["Users"]
+)
+async def login_user(user: UserAuth, request: Request):
+    """This path operation is to log in."""
+
     conn = request.app.state.db
-    db_user = await get_user_by_name(conn, user.name)
+    db_user = await get_user_by_username(conn, user.username)
 
     if not db_user or not verify_password(user.password, db_user["hashed_password"]):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
     token = create_access_token(
-        data={"sub": db_user["name"], "is_admin": db_user["is_admin"]},
+        data={"sub": db_user["username"], "is_admin": db_user["is_admin"]},
         expires_delta=timedelta(minutes=30)
     )
+    
     return {"access_token": token, "token_type": "bearer"}
 
-@app.get("/me")
+@app.get(
+    path="/me",
+    status_code=status.HTTP_200_OK,
+    tags=["Users"]
+)
 async def read_profile(user=Depends(get_current_user)):
+    """This path operation is to look the user type and username."""
     return user
 
+# Authors
 @app.get(
-        path="/books",
-        status_code=status.HTTP_200_OK,
-        tags=["Book"]
-        )
+    path="/authors",
+    status_code=status.HTTP_200_OK,
+    response_model=List[AuthorResponce],
+    tags=["Authors"]
+)
+async def get_authors_list(request: Request):
+
+    """This path operation shows all registered authors."""
+
+    conn = request.app.state.db
+    return await get_authors(conn)
+
+@app.post(
+    path="/authors",
+    status_code=status.HTTP_201_CREATED,
+    response_model=AuthorResponce,
+    tags=["Authors"]
+)
+async def add_author(author: Author, request: Request, user=Depends(require_admin)):
+
+    """This path operation register a new author."""
+    conn = request.app.state.db
+    return await create_author(conn, author.name)
+
+# Categories
+@app.get(
+    path="/categories",
+    status_code=status.HTTP_200_OK,
+    response_model=List[CategoryResponce],
+    tags=["Categories"]
+)
+async def get_categories_list(request: Request):
+
+    """This path operation shows all registered categories."""
+
+    conn = request.app.state.db
+    return await get_categories(conn)
+
+@app.post(
+    path="/categories",
+    status_code=status.HTTP_201_CREATED,
+    response_model=CategoryResponce,
+    tags=["Categories"]
+)
+async def add_category(category: Category, request: Request, user=Depends(require_admin)):
+
+    """This path operation register a new category."""
+
+    conn = request.app.state.db
+    return await create_category(conn, category.name)
+
+# Books
+@app.get(
+    path="/books",
+    status_code=status.HTTP_200_OK,
+    response_model=List[BookResponce],
+    tags=["Books"]
+)
 async def get_books_list(request: Request):
+    """This path operation shows all registered books."""
     conn = request.app.state.db
     return await get_books(conn)
 
 @app.post(
-        path="/books",
-        status_code=status.HTTP_201_CREATED,
-        tags=["Book"]
-    )
+    path="/books",
+    status_code=status.HTTP_201_CREATED,
+    response_model=BookResponce,
+    tags=["Books"]
+)
 async def add_book(
     request: Request,
     book: Book = Body(...),
     user=Depends(require_admin)
-    ):
+):
+    """This path operation register a new book."""
     conn = request.app.state.db
     return await create_book(conn, book)
