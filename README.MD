@@ -23,4 +23,4 @@ pip install -r requirements.txt
 
 Defive .env values
 
-uvicorn main:app --reload
+uvicorn app.main:app --reload

@@ -56,7 +56,10 @@ async def shutdown():
 # Default
 @app.get("/")
 async def get_start():
-    return f"Documentacion: {os.getenv('API_DOCS_URL')}"
+    return {
+        "Documentacion": os.getenv('API_DOCS_URL'),
+        "Note":"For endpoints with authentication use postman."
+    }
 
 # Users
 @app.post(
@@ -237,7 +240,10 @@ async def delete_a_book(
     response_model=List[LoanResponce],
     tags=["Loans"]
 )
-async def get_loans_list(request: Request):
+async def get_loans_list(
+    request: Request,
+    user=Depends(require_admin)
+):
     """This path operation shows all registered loans."""
     conn = request.app.state.db
     return await get_loans(conn)
@@ -271,7 +277,8 @@ async def get_books_list_by_id(
         ...,
         title="Book ID",
         description="It is the ID of one of many books"
-    )
+    ),
+    user=Depends(get_current_user)
 ):
     """This path operation shows a specific book."""
     conn = request.app.state.db
@@ -289,7 +296,8 @@ async def get_books_list_by_author(
         ...,
         title="Author ID",
         description="It is the ID of one of many authors"
-    )
+    ),
+    user=Depends(get_current_user)
 ):
     """This path operation shows all registered books of a specific author."""
     conn = request.app.state.db
@@ -308,7 +316,8 @@ async def get_books_list_by_category(
         ...,
         title="Category ID",
         description="It is the ID of one of many categories"
-    )
+    ),
+    user=Depends(get_current_user)
 ):
     """This path operation shows all registered books of a specific category."""
     conn = request.app.state.db
@@ -320,7 +329,11 @@ async def get_books_list_by_category(
     response_model=List[BookResponce],
     tags=["Books", "Search"]
 )
-async def search_books_by_term(request: Request, title: str = ""):
+async def search_books_by_term(
+    request: Request,
+    title: str = "",
+    user=Depends(get_current_user)
+):
     """This path operation shows all registered books by a term."""
     conn = request.app.state.db
     return await get_book_by_term(conn, title)
@@ -337,7 +350,8 @@ async def get_loans_list_by_user(
         ...,
         title="User ID",
         description="It is the ID of one of many users"
-    )
+    ),
+    user=Depends(require_admin)
 ):
     """This path operation shows all registered loans of a specific user."""
     conn = request.app.state.db
